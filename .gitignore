@@ -1,0 +1,24 @@
+# Binaries
+/picoflare
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
