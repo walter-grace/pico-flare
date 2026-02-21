@@ -10,6 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/bigneek/picoflare/pkg/bot"
 	"github.com/bigneek/picoflare/pkg/mcpclient"
 	"github.com/bigneek/picoflare/pkg/memory"
 	"github.com/bigneek/picoflare/pkg/storage"
@@ -24,14 +25,31 @@ func main() {
 	apiToken := os.Getenv("CLOUDFLARE_API_TOKEN")
 	r2AccessKey := os.Getenv("R2_ACCESS_KEY_ID")
 	r2SecretKey := os.Getenv("R2_SECRET_ACCESS_KEY")
+	telegramToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 
-	// mcp-test: use Cloudflare MCP to create R2 bucket and Vectorize index
-	if len(os.Args) > 1 && os.Args[1] == "mcp-test" {
+	cmd := ""
+	if len(os.Args) > 1 {
+		cmd = os.Args[1]
+	}
+
+	switch cmd {
+	case "bot":
+		runBot(bot.Config{
+			TelegramToken:  telegramToken,
+			AccountID:      accountID,
+			APIToken:       apiToken,
+			R2AccessKey:    r2AccessKey,
+			R2SecretKey:    r2SecretKey,
+			R2Bucket:       "pico-flare",
+			VectorizeIndex: "picoflare-memory",
+		})
+		return
+	case "mcp-test":
 		runMCPTest(accountID, apiToken)
 		return
 	}
 
-	// MCP client for Cloudflare Code Mode
+	// Default: quick connectivity test
 	mcp := mcpclient.NewClient("https://mcp.cloudflare.com/mcp", apiToken, accountID)
 	resp, err := mcp.SendLLMRequest(context.Background(), "Hello, PicoFlare")
 	if err != nil {
@@ -162,4 +180,17 @@ func runMCPTest(accountID, apiToken string) {
 	}
 
 	fmt.Println("\n--- mcp-test done ---")
+}
+
+func runBot(cfg bot.Config) {
+	if cfg.TelegramToken == "" {
+		log.Fatal("TELEGRAM_BOT_TOKEN is required for bot mode")
+	}
+	b, err := bot.New(cfg)
+	if err != nil {
+		log.Fatalf("Bot init failed: %v", err)
+	}
+	if err := b.Run(); err != nil {
+		log.Fatalf("Bot error: %v", err)
+	}
 }
