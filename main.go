@@ -3,18 +3,28 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 
 	"github.com/joho/godotenv"
 
+	"github.com/bigneek/picoflare/pkg/agent"
 	"github.com/bigneek/picoflare/pkg/bot"
+	cf "github.com/bigneek/picoflare/pkg/cloudflare"
+	"github.com/bigneek/picoflare/pkg/llm"
 	"github.com/bigneek/picoflare/pkg/mcpclient"
-	"github.com/bigneek/picoflare/pkg/memory"
 	"github.com/bigneek/picoflare/pkg/storage"
 )
+
+//go:embed workers/fib3d/index.js
+var fib3dWorkerJS string
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -32,8 +42,18 @@ func main() {
 		cmd = os.Args[1]
 	}
 
+	// Help
+	if cmd == "help" || cmd == "-h" || cmd == "--help" {
+		printHelp()
+		return
+	}
+
 	switch cmd {
+	case "", "agent":
+		runAgent(accountID, apiToken, r2AccessKey, r2SecretKey)
+		return
 	case "bot":
+		workspace, _ := os.Getwd()
 		runBot(bot.Config{
 			TelegramToken:  telegramToken,
 			AccountID:      accountID,
@@ -42,66 +62,135 @@ func main() {
 			R2SecretKey:    r2SecretKey,
 			R2Bucket:       "pico-flare",
 			VectorizeIndex: "picoflare-memory",
+			LLMAPIKey:      os.Getenv("OPENROUTER_API_KEY"),
+			LLMModel:       os.Getenv("OPENROUTER_MODEL"),
+			Workspace:      workspace,
 		})
 		return
 	case "mcp-test":
 		runMCPTest(accountID, apiToken)
 		return
-	}
-
-	// Default: quick connectivity test
-	mcp := mcpclient.NewClient("https://mcp.cloudflare.com/mcp", apiToken, accountID)
-	resp, err := mcp.SendLLMRequest(context.Background(), "Hello, PicoFlare")
-	if err != nil {
-		log.Fatalf("MCP request failed: %v", err)
-	}
-	fmt.Println("MCP:", resp)
-
-	// R2 storage (if credentials set)
-	if accountID != "" && r2AccessKey != "" && r2SecretKey != "" {
-		r2, err := storage.NewR2Client(accountID, r2AccessKey, r2SecretKey)
-		if err != nil {
-			log.Printf("R2 client init failed: %v", err)
-		} else {
-			ctx := context.Background()
-			bucket := "pico-flare"
-			key := "test/hello.txt"
-			data := []byte("Hello from PicoFlare")
-			if err := r2.UploadObject(ctx, bucket, key, data); err != nil {
-				log.Printf("R2 upload failed (bucket may not exist): %v", err)
-			} else {
-				down, err := r2.DownloadObject(ctx, bucket, key)
-				if err != nil {
-					log.Printf("R2 download failed: %v", err)
-				} else {
-					fmt.Printf("R2: uploaded and downloaded %q\n", string(down))
-				}
-			}
+	case "deploy-fib3d":
+		if accountID == "" || apiToken == "" {
+			log.Fatal("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN required for deploy-fib3d")
 		}
-	}
-
-	// Vectorize memory (if credentials set)
-	if accountID != "" && apiToken != "" {
-		mem := memory.NewClient(accountID, apiToken)
 		ctx := context.Background()
-		indexName := "picoflare-memory"
-		testVector := []float64{0.1, 0.2, 0.3, 0.4, 0.5}
-		if err := mem.InsertVector(ctx, indexName, "test-1", testVector, map[string]string{"source": "main"}); err != nil {
-			log.Printf("Vectorize insert failed (index may not exist): %v", err)
+		client := cf.NewClient(accountID, apiToken)
+		if err := client.DeployWorker(ctx, "fib3d", fib3dWorkerJS); err != nil {
+			log.Fatalf("Deploy fib3d failed: %v", err)
+		}
+		url := client.GetWorkerURL(ctx, "fib3d")
+		fmt.Printf("fib3d deployed: %s\n", url)
+		return
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
+		printHelp()
+		os.Exit(1)
+	}
+}
+
+func printHelp() {
+	fmt.Print(`pico-flare agent — Cloudflare-native AI agent (MCP + R2 + Vectorize)
+
+Usage:
+  picoflare              Run pico-flare agent (interactive; default)
+  picoflare agent        Run pico-flare agent (interactive)
+  picoflare bot          Telegram bot (TELEGRAM_BOT_TOKEN required)
+  picoflare mcp-test     Create R2 bucket + Vectorize index via MCP
+  picoflare deploy-fib3d Deploy fib3d Worker
+  picoflare help         Show this help
+
+When the MCP server is unavailable, the agent falls back to the Cloudflare
+REST API so you still get Workers, R2, KV, D1, and Vectorize tools.
+
+Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, OPENROUTER_API_KEY in .env.
+`)
+}
+
+func runAgent(accountID, apiToken, r2AccessKey, r2SecretKey string) {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// Try MCP; on failure fall back to Cloudflare REST API (cfClient)
+	var mcp *mcpclient.Client
+	if accountID != "" && apiToken != "" {
+		mcp = mcpclient.NewClient("https://mcp.cloudflare.com/mcp", apiToken, accountID)
+		if err := mcp.Initialize(ctx); err != nil {
+			log.Printf("MCP unavailable (%v), using Cloudflare REST API for Cloudflare operations", err)
+			mcp = nil
 		} else {
-			matches, err := mem.QueryVector(ctx, indexName, testVector, 3)
-			if err != nil {
-				log.Printf("Vectorize query failed: %v", err)
-			} else {
-				fmt.Printf("Vectorize: %d matches\n", len(matches))
-				for _, m := range matches {
-					fmt.Printf("  - id=%s score=%.4f\n", m.ID, m.Score)
-				}
-			}
+			log.Printf("pico-flare agent: MCP connected")
 		}
 	}
 
-	fmt.Println("PicoFlare initialized.")
+	var cfClient *cf.Client
+	if accountID != "" && apiToken != "" {
+		candidate := cf.NewClient(accountID, apiToken)
+		if _, err := candidate.VerifyToken(ctx); err == nil {
+			cfClient = candidate
+			if mcp == nil {
+				log.Printf("pico-flare agent: using Cloudflare REST API")
+			}
+		} else if mcp == nil {
+			log.Printf("Cloudflare API token invalid; Cloudflare features limited. Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN for full access.")
+		}
+	}
+
+	var r2 *storage.R2Client
+	if accountID != "" && r2AccessKey != "" && r2SecretKey != "" {
+		r2Client, err := storage.NewR2Client(accountID, r2AccessKey, r2SecretKey)
+		if err != nil {
+			log.Printf("R2 client init failed (non-fatal): %v", err)
+		} else {
+			r2 = r2Client
+		}
+	}
+
+	llmAPIKey := os.Getenv("OPENROUTER_API_KEY")
+	llmModel := os.Getenv("OPENROUTER_MODEL")
+	if llmModel == "" {
+		llmModel = "anthropic/claude-3-5-sonnet"
+	}
+	var llmClient *llm.Client
+	if llmAPIKey != "" {
+		llmClient = llm.NewClient(llmAPIKey, llmModel)
+		log.Printf("pico-flare agent: LLM %s", llmClient.Model)
+	} else {
+		log.Fatal("OPENROUTER_API_KEY is required for pico-flare agent. Set it in .env.")
+	}
+
+	workspace, _ := os.Getwd()
+	ag := agent.New(agent.Config{
+		LLM:                llmClient,
+		MCP:                mcp,
+		R2:                 r2,
+		CF:                 cfClient,
+		Bucket:             "pico-flare",
+		AccountID:          accountID,
+		Workspace:          workspace,
+		OnSubagentComplete: nil,
+	})
+
+	fmt.Println("pico-flare agent — Interactive mode (Ctrl+C to exit)")
+	fmt.Println()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("> ")
+		if !scanner.Scan() {
+			break
+		}
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		reply := ag.ProcessMessage(ctx, 0, line)
+		fmt.Println(reply)
+		fmt.Println()
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("pico-flare agent: read error: %v", err)
+	}
 }
 
 func runMCPTest(accountID, apiToken string) {

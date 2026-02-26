@@ -69,3 +69,46 @@ func (c *R2Client) DownloadObject(ctx context.Context, bucket, key string) ([]by
 	}
 	return buf.Bytes(), nil
 }
+
+// ListObjects lists objects under the given prefix. Returns keys (full paths).
+func (c *R2Client) ListObjects(ctx context.Context, bucket, prefix string, maxKeys int) ([]string, error) {
+	if maxKeys <= 0 {
+		maxKeys = 1000
+	}
+	out, err := c.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int32(int32(maxKeys)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var keys []string
+	for _, o := range out.Contents {
+		if o.Key != nil {
+			keys = append(keys, *o.Key)
+		}
+	}
+	return keys, nil
+}
+
+// DeleteObject deletes the object at the given bucket and key.
+func (c *R2Client) DeleteObject(ctx context.Context, bucket, key string) error {
+	_, err := c.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	return err
+}
+
+// ObjectExists returns true if the object exists.
+func (c *R2Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	_, err := c.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return false, nil // assume not exists on any error
+	}
+	return true, nil
+}
