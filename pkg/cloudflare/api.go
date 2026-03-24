@@ -167,8 +167,8 @@ func (c *Client) DeployWorker(ctx context.Context, name, jsCode string) error {
 	metaHeader.Set("Content-Type", "application/json")
 	metaPart, _ := writer.CreatePart(metaHeader)
 	metadata := map[string]interface{}{
-		"main_module":        "worker.js",
-		"compatibility_date": "2024-09-23",
+		"main_module":         "worker.js",
+		"compatibility_date":  "2024-09-23",
 		"compatibility_flags": []string{"nodejs_compat"},
 	}
 	json.NewEncoder(metaPart).Encode(metadata)

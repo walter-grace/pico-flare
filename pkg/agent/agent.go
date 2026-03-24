@@ -17,7 +17,7 @@ import (
 	"github.com/bigneek/picoflare/pkg/storage"
 )
 
-const maxIterations = 24 // Increased so agent can complete multi-file code changes (read→edit→verify)
+const maxIterations = 24             // Increased so agent can complete multi-file code changes (read→edit→verify)
 const agentTimeout = 5 * time.Minute // Max time for a single message processing
 
 // Agent is the PicoFlare cognitive agent.
@@ -127,22 +127,22 @@ func New(cfg Config) *Agent {
 	}
 
 	a := &Agent{
-		LLM:       cfg.LLM,
-		MCP:       cfg.MCP,
-		R2:        cfg.R2,
-		Bucket:    cfg.Bucket,
-		AccountID: cfg.AccountID,
-		Tools:     tools,
-		toolDefs:  ToLLMDefs(tools),
-		Memory:    mem,
-		Meta:      meta,
-		Builder:   builder,
-		Ledger:    ledger,
-		Cloud:     cloud,
-		Registry:  registry,
-		CF:            cfg.CF,
-		sessions:      make(map[int64]*session),
-		Tracker:       tracker,
+		LLM:            cfg.LLM,
+		MCP:            cfg.MCP,
+		R2:             cfg.R2,
+		Bucket:         cfg.Bucket,
+		AccountID:      cfg.AccountID,
+		Tools:          tools,
+		toolDefs:       ToLLMDefs(tools),
+		Memory:         mem,
+		Meta:           meta,
+		Builder:        builder,
+		Ledger:         ledger,
+		Cloud:          cloud,
+		Registry:       registry,
+		CF:             cfg.CF,
+		sessions:       make(map[int64]*session),
+		Tracker:        tracker,
 		modelOverrides: make(map[int64]string),
 		skillsLoader:   skillsLoader,
 	}

@@ -98,7 +98,6 @@ func ChatIDFromContext(ctx context.Context) (int64, bool) {
 	return v, ok
 }
 
-
 const subagentMaxIterations = 20 // Matches main agent—spawned coding tasks need room to finish
 
 // resolveSubWorkspace validates that subPath is within mainWorkspace and returns the absolute path.
@@ -118,8 +117,8 @@ func resolveSubWorkspace(mainWorkspace, subPath string) (string, error) {
 	return subAbs, nil
 }
 
-const subagentSyncTimeoutDefault = 3 * time.Minute  // Default timeout for sync subagent calls
-const subagentSyncTimeoutMax = 10 * time.Minute     // Maximum allowed timeout
+const subagentSyncTimeoutDefault = 3 * time.Minute // Default timeout for sync subagent calls
+const subagentSyncTimeoutMax = 10 * time.Minute    // Maximum allowed timeout
 
 // RunSubagentLoop runs a subagent with the given task. Uses the same LLM and tools as the parent,
 // but excludes spawn/subagent to avoid recursion. If workspace is non-empty, the subagent runs in

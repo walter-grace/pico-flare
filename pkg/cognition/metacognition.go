@@ -26,7 +26,7 @@ func NewMetaCognition(r2 *storage.R2Client, bucket string) *MetaCognition {
 type Goal struct {
 	ID          string    `json:"id"`
 	Description string    `json:"description"`
-	Status      string    `json:"status"` // "active", "completed", "blocked", "abandoned"
+	Status      string    `json:"status"`   // "active", "completed", "blocked", "abandoned"
 	Priority    int       `json:"priority"` // 1 (highest) - 5 (lowest)
 	SubGoals    []string  `json:"sub_goals,omitempty"`
 	Progress    string    `json:"progress,omitempty"`
@@ -75,12 +75,12 @@ func (mc *MetaCognition) SaveGoal(ctx context.Context, goal Goal) error {
 // --- Self-Reflection ---
 
 type Reflection struct {
-	Timestamp     time.Time `json:"timestamp"`
-	Observation   string    `json:"observation"`
-	Assessment    string    `json:"assessment"`
-	Improvement   string    `json:"improvement"`
-	TokensSpent   int       `json:"tokens_spent"`
-	ToolsUsed     int       `json:"tools_used"`
+	Timestamp   time.Time `json:"timestamp"`
+	Observation string    `json:"observation"`
+	Assessment  string    `json:"assessment"`
+	Improvement string    `json:"improvement"`
+	TokensSpent int       `json:"tokens_spent"`
+	ToolsUsed   int       `json:"tools_used"`
 }
 
 const reflectionsKey = "memory/meta/reflections.jsonl"

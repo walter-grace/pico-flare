@@ -25,18 +25,18 @@ import (
 
 // DynTool is a tool definition stored in R2 that the agent created for itself.
 type DynTool struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Type        string            `json:"type"` // "http", "js", "composite"
-	Endpoint    string            `json:"endpoint,omitempty"`
-	JSCode      string            `json:"js_code,omitempty"`
-	Method      string            `json:"method,omitempty"` // GET, POST
-	Headers     map[string]string `json:"headers,omitempty"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Type        string                 `json:"type"` // "http", "js", "composite"
+	Endpoint    string                 `json:"endpoint,omitempty"`
+	JSCode      string                 `json:"js_code,omitempty"`
+	Method      string                 `json:"method,omitempty"` // GET, POST
+	Headers     map[string]string      `json:"headers,omitempty"`
 	InputSchema map[string]interface{} `json:"input_schema,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	CreatedBy   string            `json:"created_by"` // "agent" or "user"
-	Enabled     bool              `json:"enabled"`
-	Uses        int               `json:"uses"`
+	CreatedAt   time.Time              `json:"created_at"`
+	CreatedBy   string                 `json:"created_by"` // "agent" or "user"
+	Enabled     bool                   `json:"enabled"`
+	Uses        int                    `json:"uses"`
 }
 
 const dynToolsKey = "memory/evolution/tools.json"
@@ -275,15 +275,15 @@ func (tr *ToolRegistry) BuildPromptAdditions(ctx context.Context) string {
 
 // Feature is a complete feature spec the agent designed and can implement.
 type Feature struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Status      string   `json:"status"` // "idea", "designed", "implemented", "deployed"
-	WorkerName  string   `json:"worker_name,omitempty"`
-	WorkerCode  string   `json:"worker_code,omitempty"`
-	ToolName    string   `json:"tool_name,omitempty"`
-	Dependencies []string `json:"dependencies,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Status       string    `json:"status"` // "idea", "designed", "implemented", "deployed"
+	WorkerName   string    `json:"worker_name,omitempty"`
+	WorkerCode   string    `json:"worker_code,omitempty"`
+	ToolName     string    `json:"tool_name,omitempty"`
+	Dependencies []string  `json:"dependencies,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 const featuresKey = "memory/evolution/features.json"

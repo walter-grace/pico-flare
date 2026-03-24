@@ -297,10 +297,10 @@ func (m *Memory) RecordProcedureUse(ctx context.Context, name string) {
 
 // ContextBudget controls how many tokens to allocate per memory layer.
 type ContextBudget struct {
-	MaxTotalChars  int // rough proxy for tokens (1 token ~ 4 chars)
-	EpisodicPct    int // % of budget for episodes
-	SemanticPct    int // % of budget for facts
-	ProceduralPct  int // % of budget for procedures
+	MaxTotalChars int // rough proxy for tokens (1 token ~ 4 chars)
+	EpisodicPct   int // % of budget for episodes
+	SemanticPct   int // % of budget for facts
+	ProceduralPct int // % of budget for procedures
 }
 
 var DefaultBudget = ContextBudget{

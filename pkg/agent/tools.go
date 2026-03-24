@@ -268,7 +268,7 @@ func BuildTools(
 				"type": "object",
 				"properties": map[string]interface{}{
 					"category": map[string]interface{}{
-						"type": "string",
+						"type":        "string",
 						"description": "Category: user, system, domain, preference, project",
 						"enum":        []string{"user", "system", "domain", "preference", "project"},
 					},
@@ -288,7 +288,7 @@ func BuildTools(
 					Category:   category,
 					Content:    content,
 					Confidence: confidence,
-					Source:      "agent",
+					Source:     "agent",
 				})
 				if err != nil {
 					return "", err
@@ -304,7 +304,7 @@ func BuildTools(
 				"type": "object",
 				"properties": map[string]interface{}{
 					"category": map[string]interface{}{
-						"type": "string",
+						"type":        "string",
 						"description": "Filter by category (empty = all)",
 					},
 				},
@@ -399,9 +399,9 @@ func BuildTools(
 				"type": "object",
 				"properties": map[string]interface{}{
 					"budget": map[string]interface{}{
-						"type": "string",
+						"type":        "string",
 						"description": "How much context: 'small' (1000 chars), 'medium' (4000), 'large' (8000)",
-						"enum": []string{"small", "medium", "large"},
+						"enum":        []string{"small", "medium", "large"},
 					},
 				},
 				"required": []string{},

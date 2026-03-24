@@ -400,9 +400,9 @@ func (ce *CloudEnv) ProvisionUserStorage(ctx context.Context, userID, username s
 	}
 
 	us := UserStorage{
-		UserID:   userID,
-		Username: username,
-		R2Prefix: fmt.Sprintf("users/%s/", userID),
+		UserID:    userID,
+		Username:  username,
+		R2Prefix:  fmt.Sprintf("users/%s/", userID),
 		CreatedAt: time.Now(),
 	}
 

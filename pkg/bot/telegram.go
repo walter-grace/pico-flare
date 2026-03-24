@@ -286,8 +286,6 @@ func (b *Bot) handleMessage(ctx context.Context, msg *telego.Message) {
 		return
 	}
 
-
-
 	// /model: set or show LLM model for this chat
 	if text == "/model" || strings.HasPrefix(text, "/model ") {
 		b.handleModel(ctx, msg.Chat.ID, msg.Chat.ChatID(), strings.TrimSpace(strings.TrimPrefix(text, "/model")))

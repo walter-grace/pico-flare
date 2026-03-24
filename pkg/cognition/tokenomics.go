@@ -26,25 +26,25 @@ type TokenLedger struct {
 }
 
 type SessionStats struct {
-	StartedAt        time.Time       `json:"started_at"`
-	PromptTokens     int             `json:"prompt_tokens"`
-	CompletionTokens int             `json:"completion_tokens"`
-	ToolCalls        int             `json:"tool_calls"`
-	Messages         int             `json:"messages"`
-	Iterations       int             `json:"iterations"`
-	ByTool           map[string]int  `json:"by_tool"`
-	ByModel          map[string]int  `json:"by_model"`
-	CostUSD          float64         `json:"cost_usd"`
+	StartedAt        time.Time      `json:"started_at"`
+	PromptTokens     int            `json:"prompt_tokens"`
+	CompletionTokens int            `json:"completion_tokens"`
+	ToolCalls        int            `json:"tool_calls"`
+	Messages         int            `json:"messages"`
+	Iterations       int            `json:"iterations"`
+	ByTool           map[string]int `json:"by_tool"`
+	ByModel          map[string]int `json:"by_model"`
+	CostUSD          float64        `json:"cost_usd"`
 }
 
 type LifetimeStats struct {
-	FirstSeen        time.Time       `json:"first_seen"`
-	TotalSessions    int             `json:"total_sessions"`
-	PromptTokens     int64           `json:"prompt_tokens"`
-	CompletionTokens int64           `json:"completion_tokens"`
-	TotalToolCalls   int64           `json:"total_tool_calls"`
-	TotalMessages    int64           `json:"total_messages"`
-	TotalCostUSD     float64         `json:"total_cost_usd"`
+	FirstSeen        time.Time        `json:"first_seen"`
+	TotalSessions    int              `json:"total_sessions"`
+	PromptTokens     int64            `json:"prompt_tokens"`
+	CompletionTokens int64            `json:"completion_tokens"`
+	TotalToolCalls   int64            `json:"total_tool_calls"`
+	TotalMessages    int64            `json:"total_messages"`
+	TotalCostUSD     float64          `json:"total_cost_usd"`
 	ByTool           map[string]int64 `json:"by_tool"`
 	ByDay            map[string]int64 `json:"by_day"` // "20060102" -> total tokens
 }
@@ -53,13 +53,13 @@ const ledgerKey = "memory/tokenomics/lifetime.json"
 
 // Model pricing (per 1M tokens) -- approximations for OpenRouter
 var modelPricing = map[string][2]float64{
-	"moonshotai/kimi-k2.5":          {0.60, 2.40},
-	"anthropic/claude-sonnet-4":     {3.00, 15.00},
-	"anthropic/claude-3.5-sonnet":   {3.00, 15.00},
-	"openai/gpt-4o":                 {2.50, 10.00},
-	"openai/gpt-4o-mini":            {0.15, 0.60},
-	"google/gemini-2.5-flash":       {0.15, 0.60},
-	"deepseek/deepseek-chat":        {0.14, 0.28},
+	"moonshotai/kimi-k2.5":        {0.60, 2.40},
+	"anthropic/claude-sonnet-4":   {3.00, 15.00},
+	"anthropic/claude-3.5-sonnet": {3.00, 15.00},
+	"openai/gpt-4o":               {2.50, 10.00},
+	"openai/gpt-4o-mini":          {0.15, 0.60},
+	"google/gemini-2.5-flash":     {0.15, 0.60},
+	"deepseek/deepseek-chat":      {0.14, 0.28},
 }
 
 func NewTokenLedger(r2 *storage.R2Client, bucket string) *TokenLedger {
