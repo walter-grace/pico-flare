@@ -1,0 +1,6 @@
+name = "mcpay-transform"
+main = "index.ts"
+compatibility_date = "2026-04-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Required secret (wrangler secret put OPENROUTER_API_KEY)
