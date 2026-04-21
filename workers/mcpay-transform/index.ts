@@ -102,7 +102,7 @@ ${code}`;
         "X-Title": "create-mcpay transformer",
       },
       body: JSON.stringify({
-        model: "anthropic/claude-opus-4-5",
+        model: "google/gemma-4-26b-a4b-it",
         max_tokens: 2048,
         stream: true,
         messages: [
