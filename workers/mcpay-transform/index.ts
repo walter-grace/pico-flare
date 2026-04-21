@@ -93,29 +93,52 @@ Handler to transform:
 
 ${code}`;
 
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://walter-grace.github.io/create-mcpay",
-        "X-Title": "create-mcpay transformer",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-26b-a4b-it",
-        max_tokens: 2048,
-        stream: true,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMsg },
-        ],
-      }),
+    const FREE_MODELS = [
+      "qwen/qwen3-coder:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "nousresearch/hermes-3-llama-3.1-405b:free",
+      "google/gemma-3-27b-it:free",
+    ];
+
+    const payload = (model: string) => JSON.stringify({
+      model,
+      max_tokens: 2048,
+      stream: true,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userMsg },
+      ],
     });
 
-    if (!upstream.ok) {
-      const err = await upstream.text();
-      return new Response(JSON.stringify({ error: `upstream ${upstream.status}: ${err}` }), {
-        status: 502,
+    let upstream: Response | null = null;
+    let lastErr = "";
+    for (const model of FREE_MODELS) {
+      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://walter-grace.github.io/create-mcpay",
+          "X-Title": "create-mcpay transformer",
+        },
+        body: payload(model),
+      });
+      if (resp.ok) { upstream = resp; break; }
+      lastErr = await resp.text();
+      // only retry on rate-limit; bail on auth/bad-request errors
+      if (resp.status !== 429) {
+        return new Response(JSON.stringify({ error: `upstream ${resp.status}: ${lastErr}` }), {
+          status: 502,
+          headers: { "Content-Type": "application/json", ...cors },
+        });
+      }
+    }
+
+    if (!upstream) {
+      return new Response(JSON.stringify({ error: `all models rate-limited: ${lastErr}` }), {
+        status: 429,
         headers: { "Content-Type": "application/json", ...cors },
       });
     }
